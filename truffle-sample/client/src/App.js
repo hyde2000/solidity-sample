@@ -1,29 +1,36 @@
 import React, { Component } from "react";
-import SimpleStorageContract from "./contracts/SimpleStorage.json";
+
+import Item from "./contracts/Item.json";
+import ItemManager from "./contracts/ItemManager.json";
 import getWeb3 from "./getWeb3";
 
 import "./App.css";
 
 class App extends Component {
-  state = { storageValue: 0, web3: null, accounts: null, contract: null };
+  state = { loaded: false, cost: 0, itemName: "example_1" };
 
   componentDidMount = async () => {
     try {
       // Get network provider and web3 instance.
-      const web3 = await getWeb3();
+      this.web3 = await getWeb3();
 
       // Use web3 to get the user's accounts.
-      const accounts = await web3.eth.getAccounts();
+      this.accounts = await this.web3.eth.getAccounts();
 
       // Get the contract instance.
-      const networkId = await web3.eth.net.getId();
-      const deployedNetwork = SimpleStorageContract.networks[networkId];
-      const instance = new web3.eth.Contract(
-        SimpleStorageContract.abi,
-        deployedNetwork && deployedNetwork.address
+      this.networkId = await this.web3.eth.net.getId();
+      this.itemManager = new this.web3.eth.Contract(
+        ItemManager.abi,
+        ItemManager.networks[this.networkId] &&
+          ItemManager.networks[this.networkId].address
       );
 
-      this.setState({ web3, accounts, contract: instance }, this.runExample);
+      this.item = new this.web3.eth.Contract(
+        Item.abi,
+        Item.networks[this.networkId] && Item.networks[this.networkId].address
+      );
+
+      this.setState({ loaded: true }, this.runExample);
     } catch (error) {
       alert(
         `Failed to load web3, accounts, or contract. Check console for details.`
@@ -32,36 +39,55 @@ class App extends Component {
     }
   };
 
-  runExample = async () => {
-    const { accounts, contract } = this.state;
+  handlerInputChange = (e) => {
+    const target = e.target;
+    const value = target.type === "checkbox" ? target.checked : target.value;
+    const name = target.name;
+    this.setState({
+      [name]: value,
+    });
+  };
 
-    // Stores a given value, 5 by default.
-    await contract.methods.set(5).send({ from: accounts[0] });
-
-    // Get the value from the contract to prove it worked.
-    const response = await contract.methods.get().call();
-
-    // Update state with the result.
-    this.setState({ storageValue: response });
+  handleSubmit = async () => {
+    const { cost, itemName } = this.state;
+    await this.itemManager.methods
+      .createItem(itemName, cost)
+      .send({ from: this.accounts[0] });
   };
 
   render() {
-    if (!this.state.web3) {
+    if (!this.state.loaded) {
       return <div>Loading Web3, accounts, and contract...</div>;
     }
     return (
       <div className="App">
-        <h1>Good to Go!</h1>
-        <p>Your Truffle Box is installed and ready.</p>
-        <h2>Smart Contract Example</h2>
-        <p>
-          If your contracts compiled and migrated successfully, below will show
-          a stored value of 5 (by default).
-        </p>
-        <p>
-          Try changing the value stored on <strong>line 42</strong> of App.js.
-        </p>
-        <div>The stored value is: {this.state.storageValue}</div>
+        <h1>Event Trigger / Supply Chain Example</h1>
+        <h2>Items</h2>
+        <h2>Add Items</h2>
+        Cost in wei:
+        <input
+          type="text"
+          className="form-control mb-2 mr-sm-2"
+          name="cost"
+          value={this.state.cost}
+          onChange={this.handlerInputChange}
+        />
+        Item Identifier:{" "}
+        <input
+          type="text"
+          className="form-control mb-2 mr-sm-2"
+          name="itemName"
+          value={this.state.itemName}
+          onChange={this.handlerInputChange}
+        />
+        <button
+          type="button"
+          className="btn btn-primary"
+          data-toggle="modal"
+          onClick={this.handleSubmit}
+        >
+          Create new Item
+        </button>
       </div>
     );
   }
