@@ -33,6 +33,7 @@ class App extends Component {
       );
       this.item.options.address = "0x54a68A5fE4A12e0767C2387F4b654C2ca07D74AE";
 
+      this.listenToPaymentEvent();
       this.setState({ loaded: true }, this.runExample);
     } catch (error) {
       alert(
@@ -40,6 +41,17 @@ class App extends Component {
       );
       console.error(error);
     }
+  };
+
+  listenToPaymentEvent = () => {
+    this.itemManager.events.SupplyChainStep().on("data", async (e) => {
+      console.log(e);
+
+      let itemObj = this.itemManager.methods
+        .items(e.returnValues._itemIndex)
+        .call();
+      console.log(itemObj);
+    });
   };
 
   handlerInputChange = (e) => {
