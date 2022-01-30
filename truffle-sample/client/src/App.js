@@ -24,11 +24,14 @@ class App extends Component {
         ItemManager.networks[this.networkId] &&
           ItemManager.networks[this.networkId].address
       );
+      this.itemManager.options.address =
+        "0x54a68A5fE4A12e0767C2387F4b654C2ca07D74AE";
 
       this.item = new this.web3.eth.Contract(
         Item.abi,
         Item.networks[this.networkId] && Item.networks[this.networkId].address
       );
+      this.item.options.address = "0x54a68A5fE4A12e0767C2387F4b654C2ca07D74AE";
 
       this.setState({ loaded: true }, this.runExample);
     } catch (error) {
@@ -50,9 +53,10 @@ class App extends Component {
 
   handleSubmit = async () => {
     const { cost, itemName } = this.state;
-    await this.itemManager.methods
+    let res = await this.itemManager.methods
       .createItem(itemName, cost)
       .send({ from: this.accounts[0] });
+    console.log(res);
   };
 
   render() {
